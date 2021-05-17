@@ -117,6 +117,7 @@ print_host_avails(){
 chk_vwr_pid(){
 	# Start client (viewer) if it not launched and viewer's PID is not empty
 	if [[ ! -z $cur_vwr_pid ]] && [[ -z $(ps -o pid="" $cur_vwr_pid) ]]; then
+		cur_vwr_pid=""
 		# Find available not previos host to connect
 		for ip_addr in ${!host_avails[@]}; do
 			if [[ $ip_addr != $cur_hst_ip ]] && [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
@@ -129,7 +130,6 @@ chk_vwr_pid(){
 		
 		# If no another available host's ip addresses was found try connect to previous
 		if [[ -z $cur_vwr_pid ]]; then
-			echo "run4"
 			run-tc $cur_hst_ip &
             cur_vwr_pid=$!
 		fi
