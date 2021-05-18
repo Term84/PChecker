@@ -4,16 +4,19 @@
 ##  Thin Client Connector 2.0   ##
 ##################################
 
-echo
-echo MAIN PID: $$
-echo
+echo -e "\n MAIN PID: $$ \n"
 
 declare -A chk_host_avail_pids
 declare -A host_avails
 declare -r tmp_dir="/tmp/tc-conn"
 declare -r cfg_file="/etc/tc-conn.cfg"
-declare cur_vwr_pid
-#declare last_hst_ip
+declare -r run_vwr_str="xtightvncviewer -quality 9 -nocursorshape -fullscreen -compresslevel 0 -xrm '*grabKeyboard: true' "
+
+#declare -r run_vwr_str="xtightvncviewer -quality 9 -nocursorshape -fullscreen -compresslevel 0 -xrm '*grabKeyboard: true' 192.168.101.12:5904"
+
+declare -r vwr_prt="5904"
+declare cur_vwr_pid=""
+declare cur_hst_ip=""
 
 # Checking of reachable host by ping procedure
 chk_host_avail(){
@@ -72,7 +75,8 @@ chk_tmp_files(){
 			print_host_avails
 
 			if [[ -z $cur_vwr_pid ]]; then
-				run-tc $filename &
+				$run_vwr_str $filename ":" $vwr_prt &
+				#run-tc $filename &
 				cur_vwr_pid=$!
 				cur_hst_ip=$filename
 			fi
@@ -92,7 +96,8 @@ chk_tmp_files(){
 				# Find available host
 				for ip_addr in ${!host_avails[@]}; do
 					if [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
-						run-tc $ip_addr &
+						$run_vwr_str $ip_addr ":" $vwr_prt &
+						#run-tc $ip_addr &
 						cur_vwr_pid=$!
 						cur_hst_ip=$ip_addr
 						break
@@ -121,7 +126,8 @@ chk_vwr_pid(){
 		# Find available not previos host to connect
 		for ip_addr in ${!host_avails[@]}; do
 			if [[ $ip_addr != $cur_hst_ip ]] && [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
-				run-tc $ip_addr &
+				$run_vwr_str $ip_addr ":" $vwr_prt &
+				#run-tc $ip_addr &
 				cur_vwr_pid=$!
 				cur_hst_ip=$ip_addr
 				break
@@ -130,7 +136,8 @@ chk_vwr_pid(){
 		
 		# If no another available host's ip addresses was found try connect to previous
 		if [[ -z $cur_vwr_pid ]]; then
-			run-tc $cur_hst_ip &
+			$run_vwr_str $cur_hst_ip ":" $vwr_prt &
+			#run-tc $cur_hst_ip &
 			cur_vwr_pid=$!
 		fi
 	fi
@@ -166,6 +173,8 @@ for key in ${!chk_host_avail_pids[@]}; do
 done
 echo
 
+DISPLAY=":0"
+
 # Main loop (checks tmp files of connections, run and control TC-viewer)
 while :
 do
@@ -179,7 +188,6 @@ done
 
 
 
-!!!
 
 
 
