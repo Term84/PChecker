@@ -10,10 +10,8 @@ declare -A chk_host_avail_pids
 declare -A host_avails
 declare -r tmp_dir="/tmp/tc-conn"
 declare -r cfg_file="/etc/tc-conn.cfg"
-declare -r run_vwr_str="xtightvncviewer -quality 9 -nocursorshape -fullscreen -compresslevel 0 -xrm '*grabKeyboard: true' "
-
-#declare -r run_vwr_str="xtightvncviewer -quality 9 -nocursorshape -fullscreen -compresslevel 0 -xrm '*grabKeyboard: true' 192.168.101.12:5904"
-
+#declare -r run_vwr_str="xtightvncviewer -quality 9 -nocursorshape -fullscreen -compresslevel 0 -xrm '*grabKeyboard: true' "
+declare -r run_vwr_str="xtightvncviewer -quality 9 -nocursorshape -fullscreen -compresslevel 0 "
 declare -r vwr_prt="5904"
 declare cur_vwr_pid=""
 declare cur_hst_ip=""
@@ -97,9 +95,10 @@ chk_tmp_files(){
 				# Find available host
 				for ip_addr in ${!host_avails[@]}; do
 					if [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
-						$run_vwr_str $ip_addr ":" $vwr_prt &
+						run_vwr $filename
+						#$run_vwr_str $ip_addr ":" $vwr_prt &
 						#run-tc $ip_addr &
-						cur_vwr_pid=$!
+						#cur_vwr_pid=$!
 						cur_hst_ip=$ip_addr
 						break
 					fi
@@ -127,9 +126,10 @@ chk_vwr_pid(){
 		# Find available not previos host to connect
 		for ip_addr in ${!host_avails[@]}; do
 			if [[ $ip_addr != $cur_hst_ip ]] && [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
-				$run_vwr_str $ip_addr ":" $vwr_prt &
+				run_vwr $filename
+				#$run_vwr_str $ip_addr ":" $vwr_prt &
 				#run-tc $ip_addr &
-				cur_vwr_pid=$!
+				#cur_vwr_pid=$!
 				cur_hst_ip=$ip_addr
 				break
 			fi
@@ -137,15 +137,18 @@ chk_vwr_pid(){
 		
 		# If no another available host's ip addresses was found try connect to previous
 		if [[ -z $cur_vwr_pid ]]; then
-			$run_vwr_str $cur_hst_ip ":" $vwr_prt &
+			run_vwr $filename
+			#$run_vwr_str $cur_hst_ip ":" $vwr_prt &
 			#run-tc $cur_hst_ip &
-			cur_vwr_pid=$!
+			#cur_vwr_pid=$!
 		fi
 	fi
 }
 
 run_vwr(){
-	DISPLAY=":0" $run_vwr_str $1 ":" $vwr_prt &
+	echo DISPLAY=:0 $run_vwr_str $1::$vwr_prt &
+	DISPLAY=:0 $run_vwr_str $1::$vwr_prt &
+	cur_vwr_pid=$!
 }
 
 # Create directory in memory /tmp/tc-conn
