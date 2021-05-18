@@ -75,7 +75,8 @@ chk_tmp_files(){
 			print_host_avails
 
 			if [[ -z $cur_vwr_pid ]]; then
-				$run_vwr_str $filename ":" $vwr_prt &
+				run_vwr $filename
+				#$run_vwr_str $filename ":" $vwr_prt &
 				#run-tc $filename &
 				cur_vwr_pid=$!
 				cur_hst_ip=$filename
@@ -143,6 +144,10 @@ chk_vwr_pid(){
 	fi
 }
 
+run_vwr(){
+	DISPLAY=":0" $run_vwr_str $1 ":" $vwr_prt &
+}
+
 # Create directory in memory /tmp/tc-conn
 if [[ -d "$tmp_dir" ]]; then
 	# If directory exists - delete files in this directory
@@ -172,8 +177,6 @@ for key in ${!chk_host_avail_pids[@]}; do
 	echo ${key}  pid: ${chk_host_avail_pids[${key}]}
 done
 echo
-
-DISPLAY=":0"
 
 # Main loop (checks tmp files of connections, run and control TC-viewer)
 while :
