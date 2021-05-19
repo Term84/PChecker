@@ -1,0 +1,19 @@
+[Unit]
+Description=Thin client service (TCs)
+After=display-manager.service
+Requires=display-manager.service
+
+[Service]
+User=userrpc
+Type=simple
+#NotifyAccess=all
+PIDFile=/var/tmp/thin-client2.pid
+ExecStart=/bin/tc-conn2.sh
+ExecReload=/usr/bin/kill -HUP $MAINPID
+ExecStop=/usr/bin/kill -HUP $MAINPID
+
+TimeoutSec=3
+Restart=always
+
+[Install]
+WantedBy=graphical.target

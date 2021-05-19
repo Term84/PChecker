@@ -1,0 +1,19 @@
+[Unit]
+Description=USB redirection service (URs)
+After=display-manager.service
+Requires=display-manager.service
+
+[Service]
+User=root
+Type=simple
+#NotifyAccess=all
+PIDFile=/var/tmp/usbredir.pid
+ExecStart=/usr/sbin/usbredirserver -p 4000 -v 5 001-003 -4 0.0.0.0
+ExecReload=/usr/bin/kill -HUP $MAINPID
+ExecStop=/usr/bin/kill -HUP $MAINPID
+
+TimeoutSec=3
+Restart=always
+
+[Install]
+WantedBy=graphical.target
