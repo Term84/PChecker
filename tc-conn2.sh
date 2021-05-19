@@ -18,35 +18,25 @@ declare cur_hst_ip=""
 
 # Checking of reachable host by ping procedure
 chk_host_avail(){
-
-	#if [[ -z $2 ]]; then
-	#	local is_alive=0
-	#else
-	#	local is_alive=$2
-	#fi
-
 	local is_alive=0
 
 	while :
 	do
-		local res="$(fping -r0 $1 2<&1| grep -icE 'alive')"
-		if [[ res -ne is_alive ]]; then
-			if [[ res -eq 0 ]]; then
+		local png_res="$(fping -r0 $1 2<&1| grep -icE 'alive')"
+		if [[ png_res -ne is_alive ]]; then
+			if [[ png_res -eq 0 ]]; then
 				# Host unreacheble after reacheble
-				#kill -s SIGUSR2 $$
 				echo "0" > /tmp/tc-conn/$1
 				echo "host $1 is UNreachable now"
 			else
 				# Host reachable after unreacheble
-				#kill -s SIGUSR1 $$
 				echo "1" > /tmp/tc-conn/$1
 				echo "host $1 is reachable now"
 			fi
 		fi
 
-		is_alive=$res
+		is_alive=$png_res
 		sleep 1
-
 	done
 }
 
@@ -55,7 +45,7 @@ stop_handler(){
 	echo stop_handler function
 	kill ${chk_host_avail_pids[@]}
 	if [[ ! -z $cur_vwr_pid ]]; then
-		kill $cur_vwr_pid
+		stop_vwr
 	fi
 	rm -rfd $tmp_dir
 	exit 0
@@ -68,38 +58,27 @@ chk_tmp_files(){
 		# Checking files with "1" letter (reachable addresses that were unreachable before)
 		if [[ -f ${tmp_dir}/${filename} ]] && [[ $(cat ${tmp_dir}/${filename}) -eq "1" ]] && [[ host_avails[$filename] -eq 0 ]]; then
 			echo "on_reachable_handler: host $filename is reachable now (pid ${chk_host_avail_pids[$filename]})"
-			#rm -f ${tmp_dir}/${filename}
 			host_avails[$filename]=1
 			print_host_avails
 
+			# If no viewer running - run viewer
 			if [[ -z $cur_vwr_pid ]]; then
 				run_vwr $filename
-				#$run_vwr_str $filename ":" $vwr_prt &
-				#run-tc $filename &
-				cur_vwr_pid=$!
-				cur_hst_ip=$filename
 			fi
 
 		# Checking files with "0" letter (UNreachable addresses that were reachable before)
 		elif [[ -f ${tmp_dir}/${filename} ]] && [[ $(cat ${tmp_dir}/${filename}) -eq "0" ]] && [[ host_avails[$filename] -eq 1 ]]; then
 			echo "on_UNreachable_handler: host $filename is UNreachable now (pid ${chk_host_avail_pids[$filename]})"
-			#rm -f ${tmp_dir}/${filename}
 			host_avails[$filename]=0
 			print_host_avails
 
 			if [[ ! -z $cur_vwr_pid ]] && [[ $cur_hst_ip == $filename ]]; then
-				kill $cur_vwr_pid
-				cur_vwr_pid=""
-				cur_hst_ip=""
+				stop_vwr
 
 				# Find available host
 				for ip_addr in ${!host_avails[@]}; do
 					if [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
 						run_vwr $filename
-						#$run_vwr_str $ip_addr ":" $vwr_prt &
-						#run-tc $ip_addr &
-						#cur_vwr_pid=$!
-						cur_hst_ip=$ip_addr
 						break
 					fi
 				done
@@ -127,10 +106,6 @@ chk_vwr_pid(){
 		for ip_addr in ${!host_avails[@]}; do
 			if [[ $ip_addr != $cur_hst_ip ]] && [[ ${host_avails[${ip_addr}]} -eq "1" ]]; then
 				run_vwr $filename
-				#$run_vwr_str $ip_addr ":" $vwr_prt &
-				#run-tc $ip_addr &
-				#cur_vwr_pid=$!
-				cur_hst_ip=$ip_addr
 				break
 			fi
 		done
@@ -138,17 +113,23 @@ chk_vwr_pid(){
 		# If no another available host's ip addresses was found try connect to previous
 		if [[ -z $cur_vwr_pid ]]; then
 			run_vwr $filename
-			#$run_vwr_str $cur_hst_ip ":" $vwr_prt &
-			#run-tc $cur_hst_ip &
-			#cur_vwr_pid=$!
 		fi
 	fi
 }
 
+# Run VNC viewer commands
 run_vwr(){
 	echo DISPLAY=:0 $run_vwr_str $1::$vwr_prt &
 	DISPLAY=:0 $run_vwr_str $1::$vwr_prt &
 	cur_vwr_pid=$!
+	cur_hst_ip=$1
+}
+
+# Stop VNC viewer (kill processe)
+stop_vwr(){
+	kill $cur_vwr_pid
+	cur_vwr_pid=""
+	cur_hst_ip=""
 }
 
 # Create directory in memory /tmp/tc-conn
@@ -159,9 +140,7 @@ else
 	mkdir $tmp_dir
 fi
 
-# Declare trap handlers
-#trap 'on_reachable_handler' SIGUSR1	# for reach
-#trap 'on_unreachable_handler' SIGUSR2	# and unreach adresses
+# Declare stop trap handler
 trap 'stop_handler' SIGINT SIGTERM	# for interrupt signal
 
 # Reading line-by-line host's ip addresses
